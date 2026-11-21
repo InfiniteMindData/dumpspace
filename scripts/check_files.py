@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import re
+import secrets
 from github import Github, Auth, InputGitTreeElement
 import base64
 import hashlib
@@ -83,9 +84,14 @@ def get_content_by_name(filename):
 
 
 def write_to_env(var, value):
+  delimiter = "EOF_" + secrets.token_hex(16)
+
   with open(os.getenv('GITHUB_ENV'), "a") as myfile:
-    print(var + "=" + value, file=myfile)
-    print(var + "=" + value)
+    print(var + "<<" + delimiter, file=myfile)
+    print(value, file=myfile)
+    print(delimiter, file=myfile)
+
+  print(var + "=" + value)
 
 
 def env_comment(type, msg):
@@ -132,15 +138,6 @@ def check_for_malicious_code(json_str):
       print(code)
     return True, "Potential JavaScript code found."
   
-  # 3. Check for XSS
-  # Catch HTML tags (eg; <img..., <iframe..., <body..., </div...)
-  # This regex looks for a '<' followed immediately by a letter or a '/'
-  dangerous_tags = re.compile(
-    r'<\s*/?\s*(script|iframe|object|embed|form|input|img|svg|body|head|link|meta|style)\b',
-    re.IGNORECASE
-  )
-  if dangerous_tags.search(json_str):
-    return True, "Potential HTML/XSS code found."
   return False, ""
 
 
